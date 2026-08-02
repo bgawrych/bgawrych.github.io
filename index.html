@@ -421,4 +421,577 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const DEFAULT_PLACES = [
-  "Blue Lagoon","Katla Ice Cave","Sigoldufoss","Stokksnes","
+  "Blue Lagoon","Katla Ice Cave","Sigoldufoss","Stokksnes","Diamond Beach",
+  "Jökulsárlón","Fjallsjökull","Mulagljufur Canyon","Skaftafellsjökull","Fjaðrárgljúfur",
+  "Reynisfjara Beach","Dyrhólaey","Solheimasandur Plane Wreck","Kvernufoss","Skógafoss",
+  "Seljalandsfoss","Landmannalaugar","Bláhylur","Háifoss","Strokkur Geyser",
+  "Reykjadalur Hot Spring Thermal River","Svörtuloft Lighthouse","Dritvik Djúpalónssandur",
+  "Búðakirkja","Ytri Tunga","Holmsberg Lighthouse","Lambafellsgjá","Kleifarvatn",
+  "Seltún Geothermal Area","Krýsuvíkurkirkja","Gunnuhver","Sandvík",
+  "Bæjarins Beztu Pylsur","Kerið","Rauðfeldsgjá Gorge","Park Narodowy Skaftafell",
+  "Vík í Mýrdal","Geysir","Þingvellir","Sky Lagoon","Glymur Waterfall",
+  "Eastside Gullfoss Waterfall","Keflavík","Arnarstapi","Reykjavík"
+];
+
+let state = loadState();
+let activeDay = 0;
+let reorderIdx = null;
+let modalInsertIdx = -1;
+let locationEditPlace = null;
+
+function loadState() {
+  const saved = localStorage.getItem('itinerary');
+  if (!saved) {
+    return {
+      numDays: 5,
+      places: DEFAULT_PLACES.map(name => ({ name, location: getDefaultLocation(name) })),
+      days: Array.from({length: 5}, () => ({ start: "08:00", items: [] }))
+    };
+  }
+  
+  let parsed = JSON.parse(saved);
+  
+  if (parsed.places.length > 0 && typeof parsed.places[0] === 'string') {
+    parsed.places = parsed.places.map(name => ({ name, location: getDefaultLocation(name) }));
+  }
+  
+  if (parsed.days[0]?.items[0] && !('travel' in parsed.days[0].items[0])) {
+    parsed.days.forEach(day => {
+      day.items = day.items.map(item => ({
+        id: item.id || uid(),
+        place: item.place,
+        stay: item.stay || 30,
+        notes: item.notes || '',
+        travel: { distance: item.distance || '', driveTime: item.duration || '' }
+      }));
+    });
+  }
+  
+  localStorage.setItem('itinerary', JSON.stringify(parsed));
+  return parsed;
+}
+
+function getDefaultLocation(name) {
+  const defaults = {
+    "Blue Lagoon": "Blue Lagoon Iceland",
+    "Reykjavík": "Reykjavik, Iceland",
+    "Keflavík": "Keflavik, Iceland",
+    "Skógafoss": "Skogafoss, Iceland",
+    "Seljalandsfoss": "Seljalandsfoss, Iceland",
+    "Jökulsárlón": "Jokulsarlon, Iceland",
+    "Geysir": "Geysir, Iceland",
+    "Þingvellir": "Thingvellir National Park, Iceland",
+    "Gullfoss": "Gullfoss, Iceland",
+    "Vík í Mýrdal": "Vik, Iceland"
+  };
+  return defaults[name] || `${name}, Iceland`;
+}
+
+function saveState() {
+  localStorage.setItem('itinerary', JSON.stringify(state));
+}
+
+function uid() { return Math.random().toString(36).slice(2,9); }
+
+function getPlaceLocation(placeName) {
+  const place = state.places.find(p => p.name === placeName);
+  return place ? place.location : null;
+}
+
+function generateDirectionsUrl(fromPlace, toPlace) {
+  const from = getPlaceLocation(fromPlace);
+  const to = getPlaceLocation(toPlace);
+  
+  if (!from || !to) return null;
+  
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=driving`;
+}
+
+function generateFullDayRouteUrl() {
+  const day = state.days[activeDay];
+  if (!day || day.items.length < 2) return null;
+  
+  const locations = [];
+  for (const item of day.items) {
+    const loc = getPlaceLocation(item.place);
+    if (loc) locations.push(loc);
+  }
+  
+  if (locations.length < 2) return null;
+  
+  const origin = locations[0];
+  const destination = locations[locations.length - 1];
+  const waypoints = locations.slice(1, -1);
+  
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+  
+  if (waypoints.length > 0) {
+    url += `&waypoints=${waypoints.map(w => encodeURIComponent(w)).join('|')}`;
+  }
+  
+  return url;
+}
+
+window.saveToCloud = async function() {
+  let shareCode = localStorage.getItem('shareCode');
+  if (!shareCode) {
+    shareCode = 'ice-' + Math.random().toString(36).substring(2, 8);
+    localStorage.setItem('shareCode', shareCode);
+  }
+
+  try {
+    const { data: existing, error: checkError } = await supabase
+      .from('trip_plans').select('share_code').eq('share_code', shareCode).single();
+
+    if (checkError && checkError.code !== 'PGRST116') throw checkError;
+
+    const payload = { share_code: shareCode, data: state, title: `Iceland Trip ${shareCode}` };
+
+    if (existing) {
+      const { error } = await supabase.from('trip_plans').update(payload).eq('share_code', shareCode);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from('trip_plans').insert(payload);
+      if (error) throw error;
+    }
+
+    showShareBadge(shareCode);
+    alert(`✓ Saved to cloud!\nShare Code: ${shareCode}`);
+  } catch(e) {
+    console.error(e);
+    alert(`Save failed: ${e.message}\n\nDid you run the SQL schema in Supabase?`);
+  }
+};
+
+window.loadFromCloud = async function() {
+  const shareCode = prompt('Enter your Share Code (e.g., ice-abc123):');
+  if (!shareCode) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('trip_plans').select('data, share_code').eq('share_code', shareCode).single();
+
+    if (error || !data) { alert('Trip not found. Check your share code.'); return; }
+
+    state = data.data;
+    localStorage.setItem('shareCode', shareCode);
+    saveState();
+    showShareBadge(shareCode);
+    document.getElementById('numDays').value = state.numDays;
+    renderAll();
+    alert('✓ Loaded from cloud!');
+  } catch(e) {
+    alert(`Load failed: ${e.message}`);
+  }
+};
+
+function showShareBadge(code) {
+  document.getElementById('shareCodeDisplay').textContent = `Code: ${code}`;
+  document.getElementById('shareBadge').classList.add('visible');
+}
+
+window.copyShareCode = function() {
+  const code = document.getElementById('shareCodeDisplay').textContent.replace('Code: ', '');
+  navigator.clipboard.writeText(code).then(() => alert('Copied to clipboard!'));
+};
+
+function renderPlaces(filterQuery = '') {
+  const list = document.getElementById('placesList');
+  list.innerHTML = '';
+  const query = filterQuery.toLowerCase().trim();
+  
+  const filtered = state.places.filter(p => p.name.toLowerCase().includes(query)).sort((a,b) => a.name.localeCompare(b.name));
+
+  if (filtered.length === 0 && query !== '') {
+    list.innerHTML = '<div class="no-results">No places found</div>';
+    return;
+  }
+
+  filtered.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'place-item' + (p.location ? ' has-location' : '');
+    div.draggable = true;
+    div.innerHTML = `
+      <span class="name">${p.name}</span>
+      <button title="Set Location" onclick="openLocationModal('${p.name.replace(/'/g,"\\'")}')">📍</button>
+      <button title="Edit" onclick="editPlace('${p.name.replace(/'/g,"\\'")}')">✏️</button>
+      <button title="Delete" onclick="deletePlace('${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+      ${p.location ? '<span class="location-indicator" title="Location set">📍</span>' : ''}
+    `;
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('place', p.name);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    list.appendChild(div);
+  });
+}
+
+window.filterPlaces = function(query) {
+  renderPlaces(query);
+};
+
+window.addPlace = function() {
+  const input = document.getElementById('newPlaceName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.places.find(p => p.name === name)) { alert('Place already exists'); return; }
+  state.places.push({ name, location: getDefaultLocation(name) });
+  input.value = '';
+  document.getElementById('searchPlaces').value = '';
+  saveState(); 
+  renderPlaces();
+};
+
+window.editPlace = function(oldName) {
+  const newName = prompt('Rename place:', oldName);
+  if (!newName || newName === oldName) return;
+  const place = state.places.find(p => p.name === oldName);
+  if (place) {
+    place.name = newName;
+    state.days.forEach(d => d.items.forEach(it => { if (it.place === oldName) it.place = newName; }));
+  }
+  saveState(); 
+  renderPlaces(document.getElementById('searchPlaces').value); 
+  renderDay();
+};
+
+window.deletePlace = function(name) {
+  if (!confirm(`Delete "${name}" from all days?`)) return;
+  state.places = state.places.filter(p => p.name !== name);
+  state.days.forEach(d => d.items = d.items.filter(it => it.place !== name));
+  saveState(); 
+  renderPlaces(document.getElementById('searchPlaces').value); 
+  renderDay();
+};
+
+window.openLocationModal = function(placeName) {
+  locationEditPlace = placeName;
+  const place = state.places.find(p => p.name === placeName);
+  document.getElementById('locationPlaceName').textContent = placeName;
+  document.getElementById('locationInput').value = place ? place.location : '';
+  document.getElementById('locationModal').classList.add('visible');
+};
+
+window.closeLocationModal = function() {
+  document.getElementById('locationModal').classList.remove('visible');
+  locationEditPlace = null;
+};
+
+window.saveLocation = function() {
+  if (!locationEditPlace) return;
+  const location = document.getElementById('locationInput').value.trim();
+  const place = state.places.find(p => p.name === locationEditPlace);
+  if (place) {
+    place.location = location || null;
+    saveState();
+    renderPlaces(document.getElementById('searchPlaces').value);
+    closeLocationModal();
+    renderDay();
+  }
+};
+
+window.clearLocation = function() {
+  if (!locationEditPlace) return;
+  const place = state.places.find(p => p.name === locationEditPlace);
+  if (place) {
+    place.location = null;
+    saveState();
+    renderPlaces(document.getElementById('searchPlaces').value);
+    closeLocationModal();
+    renderDay();
+  }
+};
+
+function renderTabs() {
+  const tabs = document.getElementById('daysTabs');
+  tabs.innerHTML = '';
+  for (let i = 0; i < state.numDays; i++) {
+    const t = document.createElement('div');
+    t.className = 'day-tab' + (i === activeDay ? ' active' : '');
+    t.textContent = `Day ${i+1}`;
+    t.onclick = () => { activeDay = i; renderTabs(); renderDay(); };
+    tabs.appendChild(t);
+  }
+}
+
+function timeToMin(t) {
+  if (!t) return 0;
+  const [h,m] = t.split(':').map(Number);
+  return h*60 + m;
+}
+
+function minToTime(m) {
+  m = ((m % (24*60)) + 24*60) % (24*60);
+  return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+}
+
+function renderDay() {
+  const plan = document.getElementById('dayPlan');
+  const day = state.days[activeDay];
+  if (!day) { plan.innerHTML = '<div class="empty">No days configured</div>'; return; }
+
+  let cur = timeToMin(day.start || "08:00");
+  let totalDrive = 0, totalDist = 0;
+  
+  day.items.forEach(it => {
+    const drive = parseInt(it.travel?.driveTime) || 0;
+    const dist = parseFloat(it.travel?.distance) || 0;
+    const stay = parseInt(it.stay) || 0;
+    
+    cur += drive;
+    it.arrivalTime = minToTime(cur);
+    cur += stay;
+    it.departureTime = minToTime(cur);
+    
+    totalDrive += drive;
+    totalDist += dist;
+  });
+
+  const fullRouteUrl = generateFullDayRouteUrl();
+  const hasFullRoute = fullRouteUrl !== null;
+
+  let html = `
+    <div class="summary">
+      <strong>Day ${activeDay+1}</strong>
+      <label>Start: <input type="time" class="start" value="${day.start||'08:00'}" onchange="updateStartTime(this.value)"></label>
+      <span>Drive: <strong>${Math.floor(totalDrive/60)}h ${totalDrive%60}m</strong></span>
+      <span>Distance: <strong>${totalDist.toFixed(1)} km</strong></span>
+      <span>End: <strong>${minToTime(cur)}</strong></span>
+      ${hasFullRoute 
+        ? `<a href="${fullRouteUrl}" target="_blank" class="full-route-btn">🗺️ View Full Route</a>`
+        : `<span class="full-route-btn disabled" title="Set locations for at least 2 places">🗺️ View Full Route</span>`
+      }
+    </div>
+    <div class="drop-zone" id="dropZone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,-1)">
+      Drag places here from the left panel
+    </div>
+  `;
+
+  day.items.forEach((it, idx) => {
+    const prevPlace = idx > 0 ? day.items[idx-1].place : null;
+    const directionsUrl = prevPlace ? generateDirectionsUrl(prevPlace, it.place) : null;
+    const hasLocation = directionsUrl !== null;
+    
+    html += `
+      <div class="travel-segment">
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+          <span class="icon">🚗</span>
+          <label>km <input type="number" step="0.1" min="0" value="${it.travel?.distance || ''}" placeholder="0" onchange="updateTravel(${idx}, 'distance', this.value)"></label>
+          <label>min <input type="number" min="0" value="${it.travel?.driveTime || ''}" placeholder="0" onchange="updateTravel(${idx}, 'driveTime', this.value)"></label>
+        </div>
+        ${hasLocation 
+          ? `<a href="${directionsUrl}" target="_blank" class="directions-link">🗺️ Directions</a>`
+          : `<span class="directions-link disabled" title="Set location for both places">🗺️ Directions</span>`
+        }
+      </div>
+
+      <div class="plan-item" draggable="true" data-idx="${idx}"
+           ondragstart="startReorder(event,${idx})"
+           ondragover="event.preventDefault();this.classList.add('drop-target')"
+           ondragleave="this.classList.remove('drop-target')"
+           ondrop="handleReorder(event,${idx})">
+        <div class="time-block">
+          <div class="time">${it.arrivalTime}</div>
+          <div class="time-range">to ${it.departureTime}</div>
+          <div style="font-size:9px;color:#6a8a9f;margin-top:3px;">#${idx+1}</div>
+        </div>
+        <div>
+          <div class="place-name">${it.place}</div>
+          <div class="details">
+            <span class="stay-label">🕐 Stay (min): 
+              <input type="number" class="stay-input" min="0" value="${it.stay || 30}" placeholder="30" onchange="updateStay(${idx}, this.value)">
+            </span>
+          </div>
+          <textarea placeholder="Notes, booking refs, tips..." onchange="updateNotes(${idx}, this.value)">${it.notes||''}</textarea>
+        </div>
+        <div class="actions">
+          <button title="Move up" onclick="moveItem(${idx},-1)">⬆️</button>
+          <button title="Move down" onclick="moveItem(${idx},1)">⬇️</button>
+          <button title="Remove" onclick="removeItem(${idx})">❌</button>
+        </div>
+      </div>
+
+      <div class="add-place-mobile" onclick="openPlaceModal(${idx + 1})">
+        + Add next place
+      </div>
+    `;
+  });
+
+  if (day.items.length === 0) {
+    html += '<div class="empty">No places added yet. Use the menu (☰) on mobile or drag from the left panel.</div>';
+  }
+
+  plan.innerHTML = html;
+}
+
+window.updateStartTime = function(value) {
+  state.days[activeDay].start = value;
+  saveState();
+  renderDay();
+};
+
+window.handleDrop = function(e, targetIdx) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const place = e.dataTransfer.getData('place');
+  if (!place) return;
+  const day = state.days[activeDay];
+  const insertAt = targetIdx < 0 ? day.items.length : targetIdx + 1;
+  day.items.splice(insertAt, 0, { 
+    id: uid(), place, stay: 30, notes: '', 
+    travel: { distance: '', driveTime: '' } 
+  });
+  saveState(); renderDay();
+};
+
+window.startReorder = function(e, idx) {
+  reorderIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+};
+
+window.handleReorder = function(e, targetIdx) {
+  e.preventDefault(); e.stopPropagation();
+  const day = state.days[activeDay];
+  if (reorderIdx === null || reorderIdx === targetIdx) return;
+  const [item] = day.items.splice(reorderIdx, 1);
+  day.items.splice(targetIdx, 0, item);
+  reorderIdx = null;
+  saveState(); renderDay();
+};
+
+window.updateTravel = function(idx, field, value) {
+  if (!state.days[activeDay].items[idx].travel) state.days[activeDay].items[idx].travel = {};
+  state.days[activeDay].items[idx].travel[field] = value;
+  saveState(); renderDay();
+};
+
+window.updateStay = function(idx, value) {
+  state.days[activeDay].items[idx].stay = value;
+  saveState(); renderDay();
+};
+
+window.updateNotes = function(idx, value) {
+  state.days[activeDay].items[idx].notes = value;
+  saveState();
+};
+
+window.moveItem = function(idx, dir) {
+  const items = state.days[activeDay].items;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= items.length) return;
+  [items[idx], items[newIdx]] = [items[newIdx], items[idx]];
+  saveState(); renderDay();
+};
+
+window.removeItem = function(idx) {
+  state.days[activeDay].items.splice(idx, 1);
+  saveState(); renderDay();
+};
+
+document.getElementById('numDays').addEventListener('change', e => {
+  const n = parseInt(e.target.value) || 1;
+  state.numDays = n;
+  while (state.days.length < n) state.days.push({ start: "08:00", items: [] });
+  state.days.length = n;
+  if (activeDay >= n) activeDay = n - 1;
+  saveState(); renderTabs(); renderDay();
+});
+
+window.exportPlan = function() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'iceland-itinerary.json';
+  a.click();
+};
+
+window.importPlan = function() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = e => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        state = JSON.parse(ev.target.result);
+        document.getElementById('numDays').value = state.numDays;
+        saveState(); renderAll();
+      } catch(err) { alert('Invalid file format'); }
+    };
+    reader.readAsText(e.target.files[0]);
+  };
+  input.click();
+};
+
+window.toggleSidebar = function() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('visible');
+};
+
+window.openPlaceModal = function(insertIdx) {
+  modalInsertIdx = insertIdx;
+  document.getElementById('placeModal').classList.add('visible');
+  document.getElementById('modalSearch').value = '';
+  renderModalPlaces();
+};
+
+window.closePlaceModal = function() {
+  document.getElementById('placeModal').classList.remove('visible');
+  modalInsertIdx = -1;
+};
+
+function renderModalPlaces(filterQuery = '') {
+  const list = document.getElementById('modalPlacesList');
+  list.innerHTML = '';
+  const query = filterQuery.toLowerCase().trim();
+  
+  const filtered = state.places.filter(p => p.name.toLowerCase().includes(query)).sort((a,b) => a.name.localeCompare(b.name));
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="no-results">No places found</div>';
+    return;
+  }
+
+  filtered.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'modal-place-item';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${p.name}</span>
+        ${p.location ? '<span style="font-size:11px;color:#7dd3c0;">📍</span>' : ''}
+      </div>
+    `;
+    div.onclick = () => selectModalPlace(p.name);
+    list.appendChild(div);
+  });
+}
+
+window.filterModalPlaces = function(query) {
+  renderModalPlaces(query);
+};
+
+function selectModalPlace(placeName) {
+  const day = state.days[activeDay];
+  day.items.splice(modalInsertIdx, 0, { 
+    id: uid(), place: placeName, stay: 30, notes: '', 
+    travel: { distance: '', driveTime: '' } 
+  });
+  saveState();
+  closePlaceModal();
+  renderDay();
+}
+
+function renderAll() {
+  document.getElementById('numDays').value = state.numDays;
+  const savedCode = localStorage.getItem('shareCode');
+  if (savedCode) showShareBadge(savedCode);
+  renderPlaces(); 
+  renderTabs(); 
+  renderDay();
+}
+
+renderAll();
+</script>
+</body>
+</html>
