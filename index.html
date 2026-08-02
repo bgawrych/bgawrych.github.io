@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Iceland Itinerary Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body { 
+    font-family: 'Inter', system-ui, sans-serif; 
+    background: linear-gradient(135deg, #0a1628 0%, #1a2f4a 100%);
+    color: #e8f1f5; 
+    height: 100vh; 
+    display: flex; 
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header { 
+    background: rgba(15, 25, 40, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(100, 180, 220, 0.2);
+    padding: 16px 24px; 
+    display: flex; 
+    align-items: center; 
+    gap: 24px; 
+    flex-wrap: wrap;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  }
+
+  header h1 { 
+    font-size: 22px; 
+    font-weight: 600;
+    background: linear-gradient(135deg, #64b4dc 0%, #7dd3c0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+
+  header label { 
+    font-size: 13px; 
+    font-weight: 500;
+    color: #a8c5d6;
+  }
+
+  header input[type=number] { 
+    width: 60px; 
+    padding: 6px 8px;
+    background: rgba(30, 50, 75, 0.6);
+    border: 1px solid rgba(100, 180, 220, 0.3);
+    border-radius: 6px;
+    color: #e8f1f5;
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  header input[type=number]:focus {
+    outline: none;
+    border-color: #64b4dc;
+    box-shadow: 0 0 0 3px rgba(100, 180, 220, 0.1);
+  }
+
+  header button { 
+    background: linear-gradient(135deg, #64b4dc 0%, #4a9fb8 100%);
+    color: white; 
+    border: none; 
+    padding: 8px 16px; 
+    border-radius: 6px; 
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(100, 180, 220, 0.2);
+  }
+
+  header button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(100, 180, 220, 0.3);
+  }
+
+  .main { 
+    flex: 1; 
+    display: flex; 
+    overflow: hidden;
+  }
+
+  .sidebar { 
+    width: 300px; 
+    background: rgba(20, 35, 55, 0.95);
+    backdrop-filter: blur(10px);
+    border-right: 1px solid rgba(100, 180, 220, 0.15);
+    overflow-y: auto; 
+    padding: 16px;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .sidebar::-webkit-scrollbar-track {
+    background: rgba(30, 50, 75, 0.3);
+  }
+
+  .sidebar::-webkit-scrollbar-thumb {
+    background: rgba(100, 180, 220, 0.3);
+    border-radius: 3px;
+  }
+
+  .sidebar h3 { 
+    font-size: 12px; 
+    font-weight: 600;
+    color: #7dd3c0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .place-item { 
+    display: flex; 
+    align-items: center; 
+    padding: 10px 12px; 
+    background: rgba(30, 50, 75, 0.5);
+    margin-bottom: 6px; 
+    border-radius: 8px; 
+    font-size: 13px;
+    border: 1px solid rgba(100, 180, 220, 0.1);
+    transition: all 0.2s;
+  }
+
+  .place-item:hover {
+    background: rgba(40, 65, 95, 0.6);
+    border-color: rgba(100, 180, 220, 0.3);
+    transform: translateX(2px);
+  }
+
+  .place-item .name { 
+    flex: 1; 
+    cursor: grab;
+    font-weight: 500;
+  }
+
+  .place-item button { 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 14px; 
+    margin-left: 6px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+  }
+
+  .place-item button:hover {
+    opacity: 1;
+  }
+
+  .add-place { 
+    display: flex; 
+    gap: 6px; 
+    margin-bottom: 16px;
+  }
+
+  .add-place input { 
+    flex: 1; 
+    padding: 8px 12px; 
+    background: rgba(30, 50, 75, 0.6);
+    border: 1px solid rgba(100, 180, 220, 0.3);
+    border-radius: 6px;
+    color: #e8f1f5;
+    font-size: 13px;
+    transition: all 0.2s;
+  }
+
+  .add-place input:focus {
+    outline: none;
+    border-color: #64b4dc;
+    box-shadow: 0 0 0 3px rgba(100, 180, 220, 0.1);
+  }
+
+  .add-place button { 
+    background: linear-gradient(135deg, #7dd3c0 0%, #5fb8a5 100%);
+    color: white; 
+    border: none; 
+    padding: 8px 14px; 
+    border-radius: 6px; 
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .add-place button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(125, 211, 192, 0.3);
+  }
+
+  .content { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden;
+  }
+
+  .days-tabs { 
+    display: flex; 
+    background: rgba(20, 35, 55, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(100, 180, 220, 0.15);
+    overflow-x: auto;
+  }
+
+  .day-tab { 
+    padding: 14px 24px; 
+    cursor: pointer; 
+    border-right: 1px solid rgba(100, 180, 220, 0.1);
+    white-space: nowrap; 
+    font-size: 14px;
+    font-weight: 500;
+    color: #a8c5d6;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .day-tab:hover {
+    background: rgba(100, 180, 220, 0.05);
+    color: #e8f1f5;
+  }
+
+  .day-tab.active { 
+    background: rgba(100, 180, 220, 0.1);
+    color: #64b4dc;
+    font-weight: 600;
+  }
+
+  .day-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #64b4dc 0%, #7dd3c0 100%);
+  }
+
+  .day-plan { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 20px;
+  }
+
+  .day-plan::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .day-plan::-webkit-scrollbar-track {
+    background: rgba(30, 50, 75, 0.3);
+  }
+
+  .day-plan::-webkit-scrollbar-thumb {
+    background: rgba(100, 180, 220, 0.3);
+    border-radius: 4px;
+  }
+
+  .plan-item { 
+    background: rgba(25, 45, 70, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(100, 180, 220, 0.2);
+    border-radius: 10px; 
+    padding: 14px 16px; 
+    margin-bottom: 10px; 
+    display: grid; 
+    grid-template-columns: 90px 1fr auto; 
+    gap: 14px; 
+    align-items: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .plan-item:hover {
+    border-color: rgba(100, 180, 220, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .plan-item.dragging { 
+    opacity: 0.5; 
+  }
+
+  .plan-item.drop-target { 
+    border-color: #7dd3c0;
+    background: rgba(125, 211, 192, 0.1);
+  }
+
+  .plan-item .time { 
+    font-weight: 600; 
+    color: #7dd3c0;
+    font-size: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .plan-item .place-name { 
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+
+  .plan-item .details { 
+    display: flex; 
+    gap: 10px; 
+    margin-top: 6px; 
+    flex-wrap: wrap; 
+    align-items: center;
+  }
+
+  .plan-item label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #a8c5d6;
+  }
+
+  .plan-item input { 
+    padding: 6px 8px; 
+    background: rgba(30, 50, 75, 0.6);
+    border: 1px solid rgba(100, 180, 220, 0.3);
+    border-radius: 5px;
+    color: #e8f1f5;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+
+  .plan-item input:focus {
+    outline: none;
+    border-color: #64b4dc;
+    box-shadow: 0 0 0 3px rgba(100, 180, 220, 0.1);
+  }
+
+  .plan-item input.dist { width: 75px; }
+  .plan-item input.dur { width: 75px; }
+  .plan-item input.start { width: 75px; }
+
+  .plan-item textarea { 
+    width: 100%; 
+    margin-top: 8px; 
+    padding: 8px 10px; 
+    background: rgba(30, 50, 75, 0.6);
+    border: 1px solid rgba(100, 180, 220, 0.3);
+    border-radius: 5px;
+    color: #e8f1f5;
+    font-size: 12px;
+    resize: vertical; 
+    min-height: 32px;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .plan-item textarea:focus {
+    outline: none;
+    border-color: #64b4dc;
+    box-shadow: 0 0 0 3px rgba(100, 180, 220, 0.1);
+  }
+
+  .plan-item .actions button { 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 18px; 
+    padding: 4px 8px;
+    opacity: 0.7;
+    transition: all 0.2s;
+  }
+
+  .plan-item .actions button:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .drop-zone { 
+    border: 2px dashed rgba(100, 180, 220, 0.3);
+    border-radius: 10px; 
+    padding: 24px; 
+    text-align: center; 
+    color: #7a9bb0;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+
+  .drop-zone.drag-over { 
+    border-color: #7dd3c0;
+    background: rgba(125, 211, 192, 0.05);
+    color: #7dd3c0;
+  }
+
+  .summary { 
+    background: rgba(125, 211, 192, 0.1);
+    border: 1px solid rgba(125, 211, 192, 0.3);
+    padding: 12px 16px; 
+    border-radius: 8px; 
+    font-size: 13px; 
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .summary strong {
+    color: #7dd3c0;
+  }
+
+  .empty { 
+    color: #6a8a9f;
+    text-align: center; 
+    padding: 48px;
+    font-size: 14px;
+  }
+
+  .modal-bg { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(10, 22, 40, 0.8);
+    backdrop-filter: blur(5px);
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    z-index: 100;
+  }
+
+  .modal { 
+    background: rgba(25, 45, 70, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 24px; 
+    border-radius: 12px; 
+    width: 320px;
+    border: 1px solid rgba(100, 180, 220, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .modal input { 
+    width: 100%; 
+    padding: 10px 12px; 
+    margin: 10px 0; 
+    background: rgba(30, 50, 75, 0.6);
+    border: 1px solid rgba(100, 180, 220, 0.3);
+    border-radius: 6px;
+    color: #e8f1f5;
+    font-size: 14px;
+  }
+
+  .modal input:focus {
+    outline: none;
+    border-color: #64b4dc;
+  }
+
+  .modal-actions { 
+    display: flex; 
+    justify-content: flex-end; 
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .modal-actions button { 
+    padding: 8px 18px; 
+    border-radius: 6px; 
+    border: none; 
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .btn-primary { 
+    background: linear-gradient(135deg, #64b4dc 0%, #4a9fb8 100%);
+    color: white;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(100, 180, 220, 0.3);
+  }
+
+  .btn-secondary { 
+    background: rgba(30, 50, 75, 0.6);
+    color: #a8c5d6;
+    border: 1px solid rgba(100, 180, 220, 0.3);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(40, 65, 95, 0.6);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🇮🇸 Iceland Itinerary Planner</h1>
+  <label>Days: <input type="number" id="numDays" min="1" max="30" value="5"></label>
+  <button onclick="exportPlan()">Export</button>
+  <button onclick="importPlan()">Import</button>
+  <button onclick="if(confirm('Clear all data?')){localStorage.clear();location.reload();}">Reset</button>
+</header>
+
+<div class="main">
+  <aside class="sidebar">
+    <h3>Places</h3>
+    <div class="add-place">
+      <input type="text" id="newPlaceName" placeholder="Add new place..." onkeydown="if(event.key==='Enter')addPlace()">
+      <button onclick="addPlace()">+</button>
+    </div>
+    <div id="placesList"></div>
+  </aside>
+
+  <section class="content">
+    <div class="days-tabs" id="daysTabs"></div>
+    <div class="day-plan" id="dayPlan"></div>
+  </section>
+</div>
+
+<script>
+const DEFAULT_PLACES = [
+  "Blue Lagoon","Katla Ice Cave","Sigoldufoss","Stokksnes","Diamond Beach",
+  "Jökulsárlón","Fjallsjökull","Mulagljufur Canyon","Skaftafellsjökull","Fjaðrárgljúfur",
+  "Reynisfjara Beach","Dyrhólaey","Solheimasandur Plane Wreck","Kvernufoss","Skógafoss",
+  "Seljalandsfoss","Landmannalaugar","Bláhylur","Háifoss","Strokkur Geyser",
+  "Reykjadalur Hot Spring Thermal River","Svörtuloft Lighthouse","Dritvik Djúpalónssandur",
+  "Búðakirkja","Ytri Tunga","Holmsberg Lighthouse","Lambafellsgjá","Kleifarvatn",
+  "Seltún Geothermal Area","Krýsuvíkurkirkja","Gunnuhver","Sandvík",
+  "Bæjarins Beztu Pylsur","Kerið","Rauðfeldsgjá Gorge","Park Narodowy Skaftafell",
+  "Vík í Mýrdal","Geysir","Þingvellir","Sky Lagoon","Glymur Waterfall",
+  "Eastside Gullfoss Waterfall","Keflavík","Arnarstapi","Reykjavík"
+];
+
+let state = loadState();
+
+function loadState() {
+  const saved = localStorage.getItem('itinerary');
+  if (saved) return JSON.parse(saved);
+  return {
+    numDays: 5,
+    places: DEFAULT_PLACES.slice(),
+    days: Array.from({length: 5}, () => ({
+      start: "08:00",
+      items: []
+    }))
+  };
+}
+
+function saveState() {
+  localStorage.setItem('itinerary', JSON.stringify(state));
+}
+
+function uid() { return Math.random().toString(36).slice(2,9); }
+
+function renderPlaces() {
+  const list = document.getElementById('placesList');
+  list.innerHTML = '';
+  state.places.sort().forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'place-item';
+    div.draggable = true;
+    div.dataset.place = p;
+    div.innerHTML = `<span class="name">${p}</span>
+      <button title="Edit" onclick="editPlace('${p.replace(/'/g,"\\'")}')">✏️</button>
+      <button title="Delete" onclick="deletePlace('${p.replace(/'/g,"\\'")}')">🗑️</button>`;
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('place', p);
+      e.dataTransfer.effectAllowed = 'copy';
+    });
+    list.appendChild(div);
+  });
+}
+
+function addPlace() {
+  const input = document.getElementById('newPlaceName');
+  const name = input.value.trim();
+  if (!name) return;
+  if (state.places.includes(name)) { alert('Place already exists'); return; }
+  state.places.push(name);
+  input.value = '';
+  saveState(); renderPlaces();
+}
+
+function editPlace(oldName) {
+  const newName = prompt('Rename place:', oldName);
+  if (!newName || newName === oldName) return;
+  const idx = state.places.indexOf(oldName);
+  if (idx >= 0) state.places[idx] = newName;
+  state.days.forEach(d => d.items.forEach(it => {
+    if (it.place === oldName) it.place = newName;
+  }));
+  saveState(); renderPlaces(); renderDay();
+}
+
+function deletePlace(name) {
+  if (!confirm(`Delete "${name}"? It will be removed from all days too.`)) return;
+  state.places = state.places.filter(p => p !== name);
+  state.days.forEach(d => d.items = d.items.filter(it => it.place !== name));
+  saveState(); renderPlaces(); renderDay();
+}
+
+function renderTabs() {
+  const tabs = document.getElementById('daysTabs');
+  tabs.innerHTML = '';
+  for (let i = 0; i < state.numDays; i++) {
+    const t = document.createElement('div');
+    t.className = 'day-tab' + (i === activeDay ? ' active' : '');
+    t.textContent = `Day ${i+1}`;
+    t.onclick = () => { activeDay = i; renderTabs(); renderDay(); };
+    tabs.appendChild(t);
+  }
+}
+
+let activeDay = 0;
+
+function timeToMin(t) {
+  if (!t) return 0;
+  const [h,m] = t.split(':').map(Number);
+  return h*60 + m;
+}
+
+function minToTime(m) {
+  m = ((m % (24*60)) + 24*60) % (24*60);
+  const h = Math.floor(m/60), mm = m%60;
+  return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+}
+
+function renderDay() {
+  const plan = document.getElementById('dayPlan');
+  const day = state.days[activeDay];
+  if (!day) { plan.innerHTML = '<div class="empty">No days configured</div>'; return; }
+
+  let cur = timeToMin(day.start || "08:00");
+  day.items.forEach(it => {
+    it.arrivalTime = minToTime(cur);
+    cur += (parseInt(it.duration)||0) + (parseInt(it.stay)||0);
+  });
+  const totalMin = cur - timeToMin(day.start || "08:00");
+  const totalDist = day.items.reduce((s,it)=>s+(parseFloat(it.distance)||0),0);
+
+  let html = `
+    <div class="summary">
+      <strong>Day ${activeDay+1}</strong>
+      <label>Start: <input type="time" class="start" value="${day.start||'08:00'}" onchange="state.days[${activeDay}].start=this.value;saveState();renderDay();"></label>
+      <span>Total: <strong>${Math.floor(totalMin/60)}h ${totalMin%60}m</strong></span>
+      <span>Distance: <strong>${totalDist.toFixed(1)} km</strong></span>
+      <span>End: <strong>${minToTime(cur)}</strong></span>
+    </div>
+    <div class="drop-zone" id="dropZone" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event,-1)">
+      Drag places here from the left panel
+    </div>
+  `;
+
+  day.items.forEach((it, idx) => {
+    html += `
+      <div class="plan-item" draggable="true" data-idx="${idx}"
+           ondragstart="startReorder(event,${idx})"
+           ondragover="event.preventDefault();this.classList.add('drop-target')"
+           ondragleave="this.classList.remove('drop-target')"
+           ondrop="handleReorder(event,${idx})">
+        <div>
+          <div class="time">${it.arrivalTime}</div>
+          <div style="font-size:11px;color:#6a8a9f;margin-top:2px;">#${idx+1}</div>
+        </div>
+        <div>
+          <div class="place-name">${it.place}</div>
+          <div class="details">
+            <label>🚗 <input type="number" class="dist" step="0.1" min="0" value="${it.distance||''}" placeholder="km" onchange="updateItem(${idx},'distance',this.value)"></label>
+            <label>⏱️ <input type="number" class="dur" min="0" value="${it.duration||''}" placeholder="min" onchange="updateItem(${idx},'duration',this.value)"></label>
+            <label>🕐 <input type="number" class="dur" min="0" value="${it.stay||''}" placeholder="min" onchange="updateItem(${idx},'stay',this.value)"></label>
+          </div>
+          <textarea placeholder="Notes..." onchange="updateItem(${idx},'notes',this.value)">${it.notes||''}</textarea>
+        </div>
+        <div class="actions">
+          <button title="Move up" onclick="moveItem(${idx},-1)">⬆️</button>
+          <button title="Move down" onclick="moveItem(${idx},1)">⬇️</button>
+          <button title="Remove" onclick="removeItem(${idx})">❌</button>
+        </div>
+      </div>
+    `;
+  });
+
+  if (day.items.length === 0) {
+    html += '<div class="empty">No places added yet. Drag from the left panel.</div>';
+  }
+
+  plan.innerHTML = html;
+}
+
+function handleDrop(e, targetIdx) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const place = e.dataTransfer.getData('place');
+  if (!place) return;
+  const day = state.days[activeDay];
+  const insertAt = targetIdx < 0 ? day.items.length : targetIdx + 1;
+  day.items.splice(insertAt, 0, { id: uid(), place, distance: '', duration: '', stay: 30, notes: '' });
+  saveState(); renderDay();
+}
+
+let reorderIdx = null;
+function startReorder(e, idx) {
+  reorderIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', idx);
+}
+function handleReorder(e, targetIdx) {
+  e.preventDefault();
+  e.stopPropagation();
+  const day = state.days[activeDay];
+  const from = reorderIdx;
+  if (from === null || from === targetIdx) return;
+  const [item] = day.items.splice(from, 1);
+  day.items.splice(targetIdx, 0, item);
+  reorderIdx = null;
+  saveState(); renderDay();
+}
+
+function updateItem(idx, field, value) {
+  state.days[activeDay].items[idx][field] = value;
+  saveState();
+  if (['distance','duration','stay'].includes(field)) renderDay();
+}
+
+function moveItem(idx, dir) {
+  const items = state.days[activeDay].items;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= items.length) return;
+  [items[idx], items[newIdx]] = [items[newIdx], items[idx]];
+  saveState(); renderDay();
+}
+
+function removeItem(idx) {
+  state.days[activeDay].items.splice(idx, 1);
+  saveState(); renderDay();
+}
+
+document.getElementById('numDays').addEventListener('change', e => {
+  const n = parseInt(e.target.value) || 1;
+  state.numDays = n;
+  while (state.days.length < n) state.days.push({ start: "08:00", items: [] });
+  state.days.length = n;
+  if (activeDay >= n) activeDay = n - 1;
+  saveState(); renderTabs(); renderDay();
+});
+
+function exportPlan() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'itinerary.json';
+  a.click();
+}
+
+function importPlan() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        state = JSON.parse(ev.target.result);
+        document.getElementById('numDays').value = state.numDays;
+        saveState(); renderAll();
+      } catch(err) { alert('Invalid file'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function renderAll() {
+  document.getElementById('numDays').value = state.numDays;
+  renderPlaces(); renderTabs(); renderDay();
+}
+
+renderAll();
+</script>
+</body>
+</html>
