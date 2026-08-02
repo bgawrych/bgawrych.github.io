@@ -100,11 +100,17 @@
   .place-item { 
     display: flex; align-items: center; padding: 10px 12px; background: rgba(30, 50, 75, 0.5);
     margin-bottom: 6px; border-radius: 8px; font-size: 13px; border: 1px solid rgba(100, 180, 220, 0.1); transition: all 0.2s;
+    position: relative;
   }
   .place-item:hover { background: rgba(40, 65, 95, 0.6); border-color: rgba(100, 180, 220, 0.3); transform: translateX(2px); }
+  .place-item.has-location { border-left: 3px solid #7dd3c0; }
   .place-item .name { flex: 1; cursor: grab; font-weight: 500; }
-  .place-item button { background: none; border: none; cursor: pointer; font-size: 14px; margin-left: 6px; opacity: 0.6; }
+  .place-item button { background: none; border: none; cursor: pointer; font-size: 14px; margin-left: 4px; opacity: 0.6; }
   .place-item button:hover { opacity: 1; }
+  .place-item .location-indicator {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    font-size: 12px; color: #7dd3c0;
+  }
 
   .content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .days-tabs { display: flex; background: rgba(20, 35, 55, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(100, 180, 220, 0.15); overflow-x: auto; }
@@ -119,10 +125,10 @@
   .day-plan { flex: 1; overflow-y: auto; padding: 16px; }
   
   .travel-segment {
-    display: flex; align-items: center; justify-content: center; gap: 10px;
-    padding: 8px; margin: 0 auto 0 45px; width: calc(100% - 90px);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 10px; margin: 0 auto 0 45px; width: calc(100% - 90px);
     background: rgba(100, 180, 220, 0.05); border: 1px dashed rgba(100, 180, 220, 0.3);
-    border-radius: 8px; position: relative;
+    border-radius: 8px; position: relative; flex-wrap: wrap;
   }
   .travel-segment::before {
     content: ''; position: absolute; left: -24px; top: 50%; width: 20px; height: 2px;
@@ -133,6 +139,19 @@
   .travel-segment input {
     width: 55px; padding: 4px 6px; background: rgba(30, 50, 75, 0.8);
     border: 1px solid rgba(100, 180, 220, 0.3); border-radius: 4px; color: #e8f1f5; font-size: 11px; text-align: center;
+  }
+  .travel-segment .directions-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 8px; background: rgba(125, 211, 192, 0.2);
+    border: 1px solid rgba(125, 211, 192, 0.4); border-radius: 4px;
+    color: #7dd3c0; font-size: 11px; text-decoration: none; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .travel-segment .directions-link:hover {
+    background: rgba(125, 211, 192, 0.3); transform: translateY(-1px);
+  }
+  .travel-segment .directions-link.disabled {
+    opacity: 0.4; cursor: not-allowed; pointer-events: none;
   }
 
   .plan-item { 
@@ -201,7 +220,7 @@
   .empty { color: #6a8a9f; text-align: center; padding: 40px; font-size: 13px; }
   .no-results { color: #6a8a9f; text-align: center; padding: 16px; font-size: 12px; font-style: italic; }
 
-  /* Modal for mobile place selection */
+  /* Modal styles */
   .modal-bg {
     position: fixed; inset: 0; background: rgba(10, 22, 40, 0.8);
     backdrop-filter: blur(5px); display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -233,6 +252,24 @@
   }
   .modal-place-item:hover { background: rgba(40, 65, 95, 0.6); border-color: rgba(100, 180, 220, 0.3); }
 
+  /* Location modal specific */
+  .location-input-group { margin-bottom: 12px; }
+  .location-input-group label { display: block; font-size: 12px; color: #a8c5d6; margin-bottom: 4px; }
+  .location-input-group input {
+    width: 100%; padding: 8px 10px; background: rgba(30, 50, 75, 0.6);
+    border: 1px solid rgba(100, 180, 220, 0.3); border-radius: 5px;
+    color: #e8f1f5; font-size: 13px;
+  }
+  .location-hint {
+    font-size: 11px; color: #6a8a9f; margin-top: 8px; line-height: 1.4;
+  }
+  .location-hint a { color: #64b4dc; text-decoration: none; }
+  .btn-save {
+    width: 100%; padding: 10px; background: linear-gradient(135deg, #7dd3c0 0%, #5fb8a5 100%);
+    border: none; border-radius: 6px; color: white; font-weight: 600; cursor: pointer;
+    margin-top: 8px;
+  }
+
   /* Mobile Responsive */
   @media (max-width: 768px) {
     .menu-toggle { display: block; }
@@ -259,7 +296,7 @@
     .day-plan { padding: 12px; }
     
     .travel-segment {
-      margin: 0; width: 100%; flex-wrap: wrap;
+      margin: 0; width: 100%;
     }
     .travel-segment::before { display: none; }
     
@@ -285,7 +322,7 @@
 
 <header>
   <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-  <h1>🇮🇸 Iceland Itinerary</h1>
+  <h1>🇸 Iceland Itinerary</h1>
   <label>Days: <input type="number" id="numDays" min="1" max="30" value="5"></label>
   <button class="secondary" onclick="exportPlan()">Export</button>
   <button class="secondary" onclick="importPlan()">Import</button>
@@ -293,7 +330,7 @@
   
   <div class="share-badge" id="shareBadge">
     <span id="shareCodeDisplay"></span>
-    <button onclick="copyShareCode()" title="Copy">📋</button>
+    <button onclick="copyShareCode()" title="Copy"></button>
   </div>
   <button onclick="saveToCloud()">☁️ Save</button>
   <button onclick="loadFromCloud()">☁️ Load</button>
@@ -309,7 +346,7 @@
       <button onclick="addPlace()">+</button>
     </div>
     <div class="search-box">
-      <input type="text" id="searchPlaces" placeholder="🔍 Search places..." oninput="filterPlaces(this.value)">
+      <input type="text" id="searchPlaces" placeholder=" Search places..." oninput="filterPlaces(this.value)">
     </div>
     <div id="placesList"></div>
   </aside>
@@ -332,6 +369,30 @@
         <input type="text" id="modalSearch" placeholder="🔍 Search places..." oninput="filterModalPlaces(this.value)">
       </div>
       <div id="modalPlacesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Location Editor Modal -->
+<div class="modal-bg" id="locationModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Set Location for <span id="locationPlaceName"></span></h3>
+      <button class="modal-close" onclick="closeLocationModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="location-input-group">
+        <label>Google Maps Search Term or Coordinates</label>
+        <input type="text" id="locationInput" placeholder="e.g., Blue Lagoon, Iceland or 63.8804,-22.4495">
+      </div>
+      <div class="location-hint">
+        💡 Enter a place name (e.g., "Skógafoss, Iceland") or coordinates (latitude,longitude). 
+        This will be used to generate Google Maps directions.
+        <br><br>
+        <a href="https://maps.google.com" target="_blank">Find on Google Maps →</a>
+      </div>
+      <button class="btn-save" onclick="saveLocation()">Save Location</button>
+      <button class="btn-save" onclick="clearLocation()" style="background: rgba(220, 50, 50, 0.6); margin-top: 8px;">Clear Location</button>
     </div>
   </div>
 </div>
@@ -361,19 +422,26 @@ let state = loadState();
 let activeDay = 0;
 let reorderIdx = null;
 let modalInsertIdx = -1;
+let locationEditPlace = null;
 
 function loadState() {
   const saved = localStorage.getItem('itinerary');
   if (!saved) {
     return {
       numDays: 5,
-      places: DEFAULT_PLACES.slice(),
+      places: DEFAULT_PLACES.map(name => ({ name, location: getDefaultLocation(name) })),
       days: Array.from({length: 5}, () => ({ start: "08:00", items: [] }))
     };
   }
   
   let parsed = JSON.parse(saved);
   
+  // Migrate old places array to new format with locations
+  if (parsed.places.length > 0 && typeof parsed.places[0] === 'string') {
+    parsed.places = parsed.places.map(name => ({ name, location: getDefaultLocation(name) }));
+  }
+  
+  // Migrate old itinerary format
   if (parsed.days[0]?.items[0] && !('travel' in parsed.days[0].items[0])) {
     parsed.days.forEach(day => {
       day.items = day.items.map(item => ({
@@ -384,10 +452,27 @@ function loadState() {
         travel: { distance: item.distance || '', driveTime: item.duration || '' }
       }));
     });
-    localStorage.setItem('itinerary', JSON.stringify(parsed));
   }
   
+  localStorage.setItem('itinerary', JSON.stringify(parsed));
   return parsed;
+}
+
+function getDefaultLocation(name) {
+  // Add default locations for common Iceland places
+  const defaults = {
+    "Blue Lagoon": "Blue Lagoon Iceland",
+    "Reykjavík": "Reykjavik, Iceland",
+    "Keflavík": "Keflavik, Iceland",
+    "Skógafoss": "Skogafoss, Iceland",
+    "Seljalandsfoss": "Seljalandsfoss, Iceland",
+    "Jökulsárlón": " Jokulsarlon, Iceland",
+    "Geysir": "Geysir, Iceland",
+    "Þingvellir": "Thingvellir National Park, Iceland",
+    "Gullfoss": "Gullfoss, Iceland",
+    "Vík í Mýrdal": "Vik, Iceland"
+  };
+  return defaults[name] || `${name}, Iceland`;
 }
 
 function saveState() {
@@ -395,6 +480,20 @@ function saveState() {
 }
 
 function uid() { return Math.random().toString(36).slice(2,9); }
+
+function getPlaceLocation(placeName) {
+  const place = state.places.find(p => p.name === placeName);
+  return place ? place.location : null;
+}
+
+function generateDirectionsUrl(fromPlace, toPlace) {
+  const from = getPlaceLocation(fromPlace);
+  const to = getPlaceLocation(toPlace);
+  
+  if (!from || !to) return null;
+  
+  return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}&travelmode=driving`;
+}
 
 window.saveToCloud = async function() {
   let shareCode = localStorage.getItem('shareCode');
@@ -464,7 +563,7 @@ function renderPlaces(filterQuery = '') {
   list.innerHTML = '';
   const query = filterQuery.toLowerCase().trim();
   
-  const filtered = state.places.filter(p => p.toLowerCase().includes(query)).sort();
+  const filtered = state.places.filter(p => p.name.toLowerCase().includes(query)).sort((a,b) => a.name.localeCompare(b.name));
 
   if (filtered.length === 0 && query !== '') {
     list.innerHTML = '<div class="no-results">No places found</div>';
@@ -473,13 +572,17 @@ function renderPlaces(filterQuery = '') {
 
   filtered.forEach(p => {
     const div = document.createElement('div');
-    div.className = 'place-item';
+    div.className = 'place-item' + (p.location ? ' has-location' : '');
     div.draggable = true;
-    div.innerHTML = `<span class="name">${p}</span>
-      <button title="Edit" onclick="editPlace('${p.replace(/'/g,"\\'")}')">✏️</button>
-      <button title="Delete" onclick="deletePlace('${p.replace(/'/g,"\\'")}')">🗑️</button>`;
+    div.innerHTML = `
+      <span class="name">${p.name}</span>
+      <button title="Set Location" onclick="openLocationModal('${p.name.replace(/'/g,"\\'")}')">📍</button>
+      <button title="Edit" onclick="editPlace('${p.name.replace(/'/g,"\\'")}')">✏️</button>
+      <button title="Delete" onclick="deletePlace('${p.name.replace(/'/g,"\\'")}')">🗑️</button>
+      ${p.location ? '<span class="location-indicator" title="Location set">📍</span>' : ''}
+    `;
     div.addEventListener('dragstart', e => {
-      e.dataTransfer.setData('place', p);
+      e.dataTransfer.setData('place', p.name);
       e.dataTransfer.effectAllowed = 'copy';
     });
     list.appendChild(div);
@@ -494,8 +597,8 @@ window.addPlace = function() {
   const input = document.getElementById('newPlaceName');
   const name = input.value.trim();
   if (!name) return;
-  if (state.places.includes(name)) { alert('Place already exists'); return; }
-  state.places.push(name);
+  if (state.places.find(p => p.name === name)) { alert('Place already exists'); return; }
+  state.places.push({ name, location: getDefaultLocation(name) });
   input.value = '';
   document.getElementById('searchPlaces').value = '';
   saveState(); 
@@ -505,9 +608,13 @@ window.addPlace = function() {
 window.editPlace = function(oldName) {
   const newName = prompt('Rename place:', oldName);
   if (!newName || newName === oldName) return;
-  const idx = state.places.indexOf(oldName);
-  if (idx >= 0) state.places[idx] = newName;
-  state.days.forEach(d => d.items.forEach(it => { if (it.place === oldName) it.place = newName; }));
+  const place = state.places.find(p => p.name === oldName);
+  if (place) {
+    const oldLocation = place.location;
+    place.name = newName;
+    // Update references in days
+    state.days.forEach(d => d.items.forEach(it => { if (it.place === oldName) it.place = newName; }));
+  }
   saveState(); 
   renderPlaces(document.getElementById('searchPlaces').value); 
   renderDay();
@@ -515,11 +622,48 @@ window.editPlace = function(oldName) {
 
 window.deletePlace = function(name) {
   if (!confirm(`Delete "${name}" from all days?`)) return;
-  state.places = state.places.filter(p => p !== name);
+  state.places = state.places.filter(p => p.name !== name);
   state.days.forEach(d => d.items = d.items.filter(it => it.place !== name));
   saveState(); 
   renderPlaces(document.getElementById('searchPlaces').value); 
   renderDay();
+};
+
+// Location modal functions
+window.openLocationModal = function(placeName) {
+  locationEditPlace = placeName;
+  const place = state.places.find(p => p.name === placeName);
+  document.getElementById('locationPlaceName').textContent = placeName;
+  document.getElementById('locationInput').value = place ? place.location : '';
+  document.getElementById('locationModal').classList.add('visible');
+};
+
+window.closeLocationModal = function() {
+  document.getElementById('locationModal').classList.remove('visible');
+  locationEditPlace = null;
+};
+
+window.saveLocation = function() {
+  if (!locationEditPlace) return;
+  const location = document.getElementById('locationInput').value.trim();
+  const place = state.places.find(p => p.name === locationEditPlace);
+  if (place) {
+    place.location = location || null;
+    saveState();
+    renderPlaces(document.getElementById('searchPlaces').value);
+    closeLocationModal();
+  }
+};
+
+window.clearLocation = function() {
+  if (!locationEditPlace) return;
+  const place = state.places.find(p => p.name === locationEditPlace);
+  if (place) {
+    place.location = null;
+    saveState();
+    renderPlaces(document.getElementById('searchPlaces').value);
+    closeLocationModal();
+  }
 };
 
 function renderTabs() {
@@ -581,12 +725,21 @@ function renderDay() {
   `;
 
   day.items.forEach((it, idx) => {
+    const prevPlace = idx > 0 ? day.items[idx-1].place : null;
+    const directionsUrl = prevPlace ? generateDirectionsUrl(prevPlace, it.place) : null;
+    const hasLocation = directionsUrl !== null;
+    
     html += `
       <div class="travel-segment">
-        <span class="icon">🚗</span>
-        <label>km <input type="number" step="0.1" min="0" value="${it.travel?.distance || ''}" placeholder="0" onchange="updateTravel(${idx}, 'distance', this.value)"></label>
-        <label>min <input type="number" min="0" value="${it.travel?.driveTime || ''}" placeholder="0" onchange="updateTravel(${idx}, 'driveTime', this.value)"></label>
-        <span style="font-size:10px; color:#6a8a9f; margin-left:3px;">to ${it.place}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex:1;">
+          <span class="icon">🚗</span>
+          <label>km <input type="number" step="0.1" min="0" value="${it.travel?.distance || ''}" placeholder="0" onchange="updateTravel(${idx}, 'distance', this.value)"></label>
+          <label>min <input type="number" min="0" value="${it.travel?.driveTime || ''}" placeholder="0" onchange="updateTravel(${idx}, 'driveTime', this.value)"></label>
+        </div>
+        ${hasLocation 
+          ? `<a href="${directionsUrl}" target="_blank" class="directions-link">️ Get Directions</a>`
+          : `<span class="directions-link disabled" title="Set location for both places to enable">🗺️ Directions</span>`
+        }
       </div>
 
       <div class="plan-item" draggable="true" data-idx="${idx}"
@@ -609,9 +762,9 @@ function renderDay() {
           <textarea placeholder="Notes, booking refs, tips..." onchange="updateNotes(${idx}, this.value)">${it.notes||''}</textarea>
         </div>
         <div class="actions">
-          <button title="Move up" onclick="moveItem(${idx},-1)">⬆️</button>
+          <button title="Move up" onclick="moveItem(${idx},-1)">️</button>
           <button title="Move down" onclick="moveItem(${idx},1)">⬇️</button>
-          <button title="Remove" onclick="removeItem(${idx})">❌</button>
+          <button title="Remove" onclick="removeItem(${idx})"></button>
         </div>
       </div>
 
@@ -726,7 +879,6 @@ window.importPlan = function() {
   input.click();
 };
 
-// Mobile sidebar toggle
 window.toggleSidebar = function() {
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
@@ -734,7 +886,6 @@ window.toggleSidebar = function() {
   overlay.classList.toggle('visible');
 };
 
-// Mobile place modal
 window.openPlaceModal = function(insertIdx) {
   modalInsertIdx = insertIdx;
   document.getElementById('placeModal').classList.add('visible');
@@ -752,7 +903,7 @@ function renderModalPlaces(filterQuery = '') {
   list.innerHTML = '';
   const query = filterQuery.toLowerCase().trim();
   
-  const filtered = state.places.filter(p => p.toLowerCase().includes(query)).sort();
+  const filtered = state.places.filter(p => p.name.toLowerCase().includes(query)).sort((a,b) => a.name.localeCompare(b.name));
 
   if (filtered.length === 0) {
     list.innerHTML = '<div class="no-results">No places found</div>';
@@ -762,8 +913,13 @@ function renderModalPlaces(filterQuery = '') {
   filtered.forEach(p => {
     const div = document.createElement('div');
     div.className = 'modal-place-item';
-    div.textContent = p;
-    div.onclick = () => selectModalPlace(p);
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span>${p.name}</span>
+        ${p.location ? '<span style="font-size:11px;color:#7dd3c0;">📍</span>' : ''}
+      </div>
+    `;
+    div.onclick = () => selectModalPlace(p.name);
     list.appendChild(div);
   });
 }
@@ -772,10 +928,10 @@ window.filterModalPlaces = function(query) {
   renderModalPlaces(query);
 };
 
-function selectModalPlace(place) {
+function selectModalPlace(placeName) {
   const day = state.days[activeDay];
   day.items.splice(modalInsertIdx, 0, { 
-    id: uid(), place, stay: 30, notes: '', 
+    id: uid(), place: placeName, stay: 30, notes: '', 
     travel: { distance: '', driveTime: '' } 
   });
   saveState();
