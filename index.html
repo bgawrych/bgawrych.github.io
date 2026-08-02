@@ -257,7 +257,6 @@ function loadState() {
   
   let parsed = JSON.parse(saved);
   
-  // Migration: Convert old flat structure to new nested travel structure
   if (parsed.days[0]?.items[0] && !('travel' in parsed.days[0].items[0])) {
     parsed.days.forEach(day => {
       day.items = day.items.map(item => ({
@@ -388,7 +387,6 @@ window.addPlace = function() {
   if (state.places.includes(name)) { alert('Place already exists'); return; }
   state.places.push(name);
   input.value = '';
-  // Clear search and re-render to show the new place
   document.getElementById('searchPlaces').value = '';
   saveState(); 
   renderPlaces();
@@ -401,7 +399,6 @@ window.editPlace = function(oldName) {
   if (idx >= 0) state.places[idx] = newName;
   state.days.forEach(d => d.items.forEach(it => { if (it.place === oldName) it.place = newName; }));
   saveState(); 
-  // Keep current search filter active
   renderPlaces(document.getElementById('searchPlaces').value); 
   renderDay();
 };
@@ -463,7 +460,8 @@ function renderDay() {
   let html = `
     <div class="summary">
       <strong>Day ${activeDay+1}</strong>
-      <label>Start: <input type="time" class="start" value="${day.start||'08:00'}" onchange="state.days[${activeDay}].start=this.value;saveState();renderDay();"></label>
+      <!-- FIX: Use exposed window.updateStartTime instead of inline state access -->
+      <label>Start: <input type="time" class="start" value="${day.start||'08:00'}" onchange="updateStartTime(this.value)"></label>
       <span>Drive: <strong>${Math.floor(totalDrive/60)}h ${totalDrive%60}m</strong></span>
       <span>Distance: <strong>${totalDist.toFixed(1)} km</strong></span>
       <span>End: <strong>${minToTime(cur)}</strong></span>
@@ -518,6 +516,14 @@ function renderDay() {
 }
 
 // --- Event Handlers ---
+
+// FIX: Expose start time updater to global window scope
+window.updateStartTime = function(value) {
+  state.days[activeDay].start = value;
+  saveState();
+  renderDay();
+};
+
 window.handleDrop = function(e, targetIdx) {
   e.preventDefault();
   document.getElementById('dropZone').classList.remove('drag-over');
